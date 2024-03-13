@@ -80,43 +80,52 @@ const signupTeacher = async (req, res) => {
                 message: "All fields are required"
             });
         } else {
-            idnumber = `${Math.floor(Math.random() * (10000 + 99999 - 1)) + 10000}TEACHER${name.split(' ')[0]}`
-            hashedpassword = await bcrypt.hash(password, 10);
-            await cloudinary.uploader.upload(req.file.path, function (err, result) {
-                if (err) {
-                    res.status(400).send({
-                        status: "Failed",
-                        message: "File uploded failed."
-                    });
-                } else {
-                    profilepictureUrl = result.url;
-                }
-            });
-            const newTeacher = new Teacher({
-                name: name,
-                phone: phone,
-                email: email,
-                password: hashedpassword,
-                idnumber: idnumber,
-                profilepicture: profilepictureUrl
-            });
-            await newTeacher.save();
-            res.status(201).send({
-                status: "Success",
-                data: {
+            const check = await Teacher.find({ email: email });
+            if (!check) {
+                idnumber = `${Math.floor(Math.random() * (10000 + 99999 - 1)) + 10000}TEACHER${name.split(' ')[0]}`
+                hashedpassword = await bcrypt.hash(password, 10);
+                await cloudinary.uploader.upload(req.file.path, function (err, result) {
+                    if (err) {
+                        res.status(400).send({
+                            status: "Failed",
+                            message: "File uploded failed."
+                        });
+                    } else {
+                        profilepictureUrl = result.url;
+                    }
+                });
+                const newTeacher = new Teacher({
                     name: name,
                     phone: phone,
                     email: email,
+                    password: hashedpassword,
                     idnumber: idnumber,
+                    specialist: specialist,
                     profilepicture: profilepictureUrl
-                }
-            });
+                });
+                await newTeacher.save();
+                res.status(201).send({
+                    status: "Success",
+                    data: {
+                        name: name,
+                        phone: phone,
+                        email: email,
+                        idnumber: idnumber,
+                        profilepicture: profilepictureUrl
+                    }
+                });
+            } else {
+                res.status(400).send({
+                    status: "Failed",
+                    message: "User already exist"
+                })
+            }
         }
     } catch (error) {
         res.status(500).send({
             status: "Failed",
             message: "Internal server error"
-        })
+        });
     }
 }
 
