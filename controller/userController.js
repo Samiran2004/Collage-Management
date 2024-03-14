@@ -2,6 +2,7 @@ const User = require('../models/userModel');
 const Teacher = require('../models/teacherUserModel')
 const bcrypt = require('bcrypt');
 const cloudinary = require('../middleware/cloudinaryMiddleware');
+const jwt = require('jsonwebtoken');
 
 //Signup for students...
 const signupStudent = async (req, res) => {
@@ -129,7 +130,65 @@ const signupTeacher = async (req, res) => {
     }
 }
 
+//login route for both Student and Teacher...
+const login = async (req, res) => {
+    let token, payload;
+    try {
+        const { email, phone, password } = req.body;
+        if (!email || !phone || !password) {
+            res.status(401).send({
+                status: "Failed",
+                message: "All fields are required."
+            });
+        } else {
+            const checkStudent = await User.find({ email: email, password: password, phone: phone });
+            const checkTeacher = await Teacher.find({ email: email, password: password, phone: phone });
+            if (!checkStudent && !checkTeacher) {
+                res.status(400).send({
+                    status: "Failed",
+                    message: "User not found"
+                });
+            } else {
+                if (checkStudent) {
+                    payload = {
+                        _id: checkStudent._id,
+                        name: checkStudent.name,
+                        email: checkStudent.email,
+                        idcardnumber: checkStudent.idcardnumber,
+                        class: checkStudent.class
+                    }
+                }
+                if (checkTeacher) {
+                    payload = {
+                        _id: checkTeacher._id,
+                        name: checkTeacher.name,
+                        email: checkTeacher.email,
+                        specialist: checkTeacher.specialist,
+                        idnumber: checkTeacher.idnumber
+                    }
+                }
+                const expiresIn = 3600;
+                token = await jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn });
+                res.cookie('token', token, {
+                    httpOnly: true,
+                    expires: new Date(Date.now() + expiresIn)
+                });
+                res.status(200).send({
+                    status: "Success",
+                    token: token
+                });
+            }
+        }
+    } catch (error) {
+        res.status(500).send({
+            status: "Failed",
+            message: "Internal server error."
+        });
+    }
+}
+
 module.exports = {
     signupStudent,
-    signupTeacher
+    signupTeacher,
+    login
 }
