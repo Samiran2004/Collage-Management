@@ -132,7 +132,7 @@ const signupTeacher = async (req, res) => {
 
 //login route for both Student and Teacher...
 const login = async (req, res) => {
-    let token, payload;
+    let token, payload, decodePassword;
     try {
         const { email, phone, password } = req.body;
         if (!email || !phone || !password) {
@@ -140,55 +140,104 @@ const login = async (req, res) => {
                 status: "Failed",
                 message: "All fields are required."
             });
-        } else {
-            const checkStudent = await User.find({ email: email, password: password, phone: phone });
-            const checkTeacher = await Teacher.find({ email: email, password: password, phone: phone });
-            if (!checkStudent && !checkTeacher) {
-                res.status(400).send({
-                    status: "Failed",
-                    message: "User not found"
-                });
+            return;
+        }
+
+        const checkStudent = await User.find({ email, phone });
+        const checkTeacher = await Teacher.find({ email, phone });
+
+        if (checkStudent.length === 0 && checkTeacher.length === 0) {
+            res.status(400).send({
+                status: "Failed",
+                message: "User not found"
+            });
+            return;
+        }
+
+        if (checkStudent.length > 0) {
+            decodePassword = await bcrypt.compare(password, checkStudent[0].password);
+            if (decodePassword) {
+                payload = {
+                    _id: checkStudent[0]._id,
+                    name: checkStudent[0].name,
+                    email: checkStudent[0].email,
+                    idcardnumber: checkStudent[0].idcardnumber,
+                    class: checkStudent[0].class,
+                    role: checkStudent[0].role
+                };
             } else {
-                if (checkStudent) {
-                    payload = {
-                        _id: checkStudent._id,
-                        name: checkStudent.name,
-                        email: checkStudent.email,
-                        idcardnumber: checkStudent.idcardnumber,
-                        class: checkStudent.class
-                    }
-                }
-                if (checkTeacher) {
-                    payload = {
-                        _id: checkTeacher._id,
-                        name: checkTeacher.name,
-                        email: checkTeacher.email,
-                        specialist: checkTeacher.specialist,
-                        idnumber: checkTeacher.idnumber
-                    }
-                }
-                const expiresIn = 3600;
-                token = await jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn });
-                res.cookie('token', token, {
-                    httpOnly: true,
-                    expires: new Date(Date.now() + expiresIn)
+                res.status(401).send({
+                    status: "Failed",
+                    message: "Email or password is not valid"
                 });
-                res.status(200).send({
-                    status: "Success",
-                    token: token
-                });
+                return;
             }
         }
+
+        if (checkTeacher.length > 0) {
+            decodePassword = await bcrypt.compare(password, checkTeacher[0].password);
+            if (decodePassword) {
+                payload = {
+                    _id: checkTeacher[0]._id,
+                    name: checkTeacher[0].name,
+                    email: checkTeacher[0].email,
+                    specialist: checkTeacher[0].specialist,
+                    idnumber: checkTeacher[0].idnumber,
+                    role: checkTeacher[0].role
+                };
+            } else {
+                res.status(401).send({
+                    status: "Failed",
+                    message: "Email or password is not valid"
+                });
+                return;
+            }
+        }
+
+        const expiresIn = 3600;
+        token = await jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn });
+        res.cookie('token', token, {
+            httpOnly: true,
+            expires: new Date(Date.now() + expiresIn * 1000)
+        });
+        res.status(200).send({
+            status: "Success",
+            token: token
+        });
     } catch (error) {
+        console.error("Login error:", error);
         res.status(500).send({
             status: "Failed",
             message: "Internal server error."
         });
+    }
+};
+
+
+const getUserData = async (req, res) => {
+    try {
+        const userData = {
+            name: req.user.name,
+            email: req.user.email,
+            phone: req.user.phone,
+            role: req.user.role,
+            profilepictureUrl: req.user.profilepicture,
+            _id: req.user._id
+        }
+        res.status(200).send({
+            data: userData
+        });
+    } catch (error) {
+        res.status(500).send({
+            status: "Failed",
+            message: "Internal server error"
+        })
     }
 }
 
 module.exports = {
     signupStudent,
     signupTeacher,
-    login
+    login,
+    getUserData
 }
