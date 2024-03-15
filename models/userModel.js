@@ -25,13 +25,19 @@ const userSchema = mongoose.Schema({
     },
     role: {
         type: String,
-        default:"STUDENT"
+        default: "STUDENT"
     },
     profilepicture: {
         type: String
     },
     class: {
-        type: String
+        type: String,
+        default: "1",
+        enum: ["1", "2", "3", "4", "5", "6", "7", "8"]
+    },
+    department: {
+        type: String,
+        required: true
     }
 });
 

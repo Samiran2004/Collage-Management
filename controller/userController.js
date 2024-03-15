@@ -1,5 +1,4 @@
 const User = require('../models/userModel');
-const Teacher = require('../models/teacherUserModel');
 const bcrypt = require('bcrypt');
 const cloudinary = require('../middleware/cloudinaryMiddleware');
 const jwt = require('jsonwebtoken');
@@ -9,9 +8,9 @@ const generateUniqueId = (prefix, name) => {
 };
 
 const signupStudent = async (req, res) => {
-    const { name, email, password, phone, role, standerd } = req.body;
+    const { name, email, password, phone, role, standerd, department } = req.body;
 
-    if (!name || !email || !password || !phone || !role || !standerd) {
+    if (!name || !email || !password || !phone || !role || !standerd || !department) {
         return res.status(400).json({
             status: "Failed",
             message: "All fields are required."
@@ -47,7 +46,8 @@ const signupStudent = async (req, res) => {
             role,
             profilepicture: result.url,
             idcardnumber,
-            class: standerd
+            class: standerd,
+            department: department
         });
 
         await newUser.save();
@@ -60,66 +60,12 @@ const signupStudent = async (req, res) => {
                 phone,
                 role,
                 class: standerd,
-                profilepictureUrl: result.url
+                profilepictureUrl: result.url,
+                department
             }
         });
     } catch (error) {
         console.error("Error in signupStudent:", error);
-        res.status(500).json({
-            status: "Failed",
-            message: "Internal server error."
-        });
-    }
-};
-
-const signupTeacher = async (req, res) => {
-    const { name, phone, email, password, specialist } = req.body;
-
-    if (!name || !phone || !email || !password || !specialist) {
-        return res.status(400).json({
-            status: "Failed",
-            message: "All fields are required."
-        });
-    }
-
-    try {
-        const existingTeacher = await Teacher.findOne({ email });
-
-        if (existingTeacher) {
-            return res.status(400).json({
-                status: "Failed",
-                message: "Teacher already exists."
-            });
-        }
-
-        const idnumber = generateUniqueId("TEACHER", name);
-        const hashedpassword = await bcrypt.hash(password, 10);
-        const result = await cloudinary.uploader.upload(req.file.path);
-
-        const newTeacher = new Teacher({
-            name,
-            phone,
-            email,
-            password: hashedpassword,
-            idcardnumber: idnumber,
-            specialist,
-            profilepicture: result.url
-        });
-
-        await newTeacher.save();
-
-        res.status(201).json({
-            status: "Success",
-            data: {
-                name,
-                phone,
-                email,
-                idnumber,
-                profilepicture: result.url
-            }
-        });
-    } catch (error) {
-        console.error("Error in signupTeacher:", error);
         res.status(500).json({
             status: "Failed",
             message: "Internal server error."
@@ -138,7 +84,7 @@ const login = async (req, res) => {
     }
 
     try {
-        const user = await User.findOne({ email, phone }) || await Teacher.findOne({ email, phone });
+        const user = await User.findOne({ email, phone });
 
         if (!user) {
             return res.status(404).json({
@@ -228,10 +174,26 @@ const getUserById = async (req, res) => {
     }
 };
 
+const getAllStudent = async (req, res) => {
+    try {
+        const { sem, department } = req.params;
+        const user = await User.find({ class: sem, department: department });
+        res.status(200).send({
+            status: "Success",
+            user
+        });
+    } catch (error) {
+        return res.status(500).send({
+            status: "Failed",
+            message: "Internal server error."
+        });
+    }
+}
+
 module.exports = {
     signupStudent,
-    signupTeacher,
     login,
     getUserData,
-    getUserById
+    getUserById,
+    getAllStudent,
 };

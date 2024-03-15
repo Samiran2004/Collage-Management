@@ -15,6 +15,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.use('/api/users', require('./router/userRouter'));
+app.use('/api/attandence',require('./router/attandenceRouter'));
 
 app.listen(process.env.PORT, () => {
     console.log(`Server connected on port: ${process.env.PORT}`);
