@@ -26,7 +26,7 @@ const teacherUserSchema = new mongoose.Schema({
     profilepicture: {
         type: String
     },
-    idnumber: {
+    idcardnumber: {
         type: String,
         required: true,
         unique:true

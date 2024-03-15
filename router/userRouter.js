@@ -5,7 +5,8 @@ const {
     signupStudent,
     signupTeacher,
     login,
-    getUserData
+    getUserData,
+    getUserById
 } = require('../controller/userController');
 const upload = require('../middleware/multerMiddleware');
 const authentication = require('../middleware/authenticationMiddleware');
@@ -16,5 +17,6 @@ router.post('/signup-teacher', upload.single("profilepicture"), signupTeacher);
 router.get('/login', login);
 
 router.get('/get-user-detials', authentication, getUserData);
+router.get('/get-user/:id', getUserById);
 
 module.exports = router;
