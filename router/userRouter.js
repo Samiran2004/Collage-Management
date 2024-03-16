@@ -7,6 +7,8 @@ const {
     getUserData,
     getUserById,
     getAllStudent,
+    updateStudent,
+    deleteStudent,
 } = require('../controller/userController');
 const upload = require('../middleware/multerMiddleware');
 const authentication = require('../middleware/authenticationMiddleware');
@@ -19,5 +21,9 @@ router.get('/get-user-detials', authentication, getUserData);
 router.get('/get-user/:id', getUserById);
 
 router.get('/get-all-students/:sem/:department', getAllStudent);
+
+router.patch('/update/:idcardnumber', authentication, upload.single("profilepicture"), updateStudent);
+
+router.delete('/delete/:idcardnumber', authentication,deleteStudent);
 
 module.exports = router;

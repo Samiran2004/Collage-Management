@@ -190,10 +190,109 @@ const getAllStudent = async (req, res) => {
     }
 }
 
+//Update a student by idcardnumber....
+const updateStudent = async (req, res) => {
+    try {
+        const { idcardnumber } = req.params;
+        const { name, password, sem, department } = req.body;
+        if (req.user.idcardnumber === idcardnumber) {
+            const student = await User.findById(req.user._id);
+            if (!student) {
+                res.status(404).send({
+                    status: "Failed",
+                    message: "User not found"
+                });
+            } else {
+                if (name) student.name = name
+                if (password) {
+                    const hashedpassword = await bcrypt.hash(password, 10);
+                    student.password = hashedpassword
+                }
+                if (sem) student.class = sem
+                if (department) student.department = department
+
+                if (req.file) {
+                    const result = await cloudinary.uploader.upload(req.file.path);
+                    student.profilepictureUrl = result.url;
+                }
+                const result = await student.save();
+                res.status(201).send({
+                    status: "Success",
+                    data: result
+                });
+            }
+        } else {
+            res.status(404).send({
+                status: "Failed",
+                message: "Please provide correct idcard number"
+            });
+        }
+    } catch (error) {
+        res.status(500).send({
+            status: "Failed",
+            message: "Internal server error"
+        });
+    }
+}
+
+//Delete a student by Idcardnumber email password
+const deleteStudent = async (req, res) => {
+    const { idcardnumber } = req.params;
+    try {
+        // Validate that idcardnumber is provided
+        if (!idcardnumber) {
+            return res.status(400).json({
+                status: "Failed",
+                message: "Id card number is required"
+            });
+        }
+
+        // Verify if the requested student matches the authenticated user
+        if (req.user.idcardnumber !== idcardnumber) {
+            return res.status(403).json({
+                status: "Failed",
+                message: "Invalid id card number."
+            });
+        }
+
+        // Find the student by their authenticated user ID
+        const student = await User.findById(req.user._id);
+        if (!student) {
+            return res.status(404).json({
+                status: "Failed",
+                message: "User not found"
+            });
+        }
+
+        // Check if profilepictureUrl is defined before attempting to split it
+        if (student.profilepictureUrl) {
+            const publicId = student.profilepictureUrl.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(publicId);
+        }
+
+        // Delete the student document from MongoDB
+        const deletedStudent = await User.findByIdAndDelete(student._id);
+        console.log(deletedStudent);
+        res.status(200).json({
+            status: "Success",
+            message: "Student deleted successfully"
+        });
+    } catch (error) {
+        // Handle errors
+        console.error("Error deleting student:", error);
+        res.status(500).json({
+            status: "Failed",
+            message: "Internal server error"
+        });
+    }
+};
+
 module.exports = {
     signupStudent,
     login,
     getUserData,
     getUserById,
     getAllStudent,
+    updateStudent,
+    deleteStudent
 };

@@ -12,8 +12,6 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.use(morgan('dev'));
-
 app.use('/api/users', require('./router/userRouter'));
 app.use('/api/teacher', require('./router/teacherRouter'));
 app.use('/api/attandence', require('./router/attandenceRouter'));
