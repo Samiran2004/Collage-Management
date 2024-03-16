@@ -1,5 +1,6 @@
 const JWT = require('jsonwebtoken');
 const studentUser = require('../models/userModel');
+const Teacher = require('../models/teacherModel');
 
 const authentication = async (req, res, next) => {
     try {
@@ -14,6 +15,8 @@ const authentication = async (req, res, next) => {
             let user;
             if (decodeToken.role === 'STUDENT') {
                 user = await studentUser.findById(decodeToken._id);
+            } else if (decodeToken.role === 'TEACHER') {
+                user = await Teacher.findById(decodeToken._id);
             }
             if (!user) {
                 res.status(400).send({
