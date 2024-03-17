@@ -272,7 +272,6 @@ const deleteStudent = async (req, res) => {
 
         // Delete the student document from MongoDB
         const deletedStudent = await User.findByIdAndDelete(student._id);
-        console.log(deletedStudent);
         res.status(200).json({
             status: "Success",
             message: "Student deleted successfully"

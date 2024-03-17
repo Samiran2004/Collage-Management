@@ -20,7 +20,7 @@ const signup = async (req, res) => {
                 });
             } else {
                 const hashedPassword = await bcrypt.hash(password, 10);
-                const idcardnumber = `${Math.floor(Math.random() * 10000)}TEACHER${name}`;
+                const idcardnumber = `${Math.floor(Math.random() * 10000)}TEACHER${name.split(" ")[0]}`;
                 const result = await cloudinary.uploader.upload(req.file.path);
                 const newTeacher = new Teacher({
                     name: name,
@@ -198,11 +198,47 @@ const getAllTeacher = async (req, res) => {
     }
 }
 
+const deleteTeacher = async (req, res) => {
+    const { idcardnumber } = req.params;
+    try {
+        if (req.user.idcardnumber === idcardnumber) {
+            const teacher = await Teacher.findById(req.user._id);
+            if (!teacher) {
+                res.status(400).send({
+                    status: "Failed",
+                    message: "User not found"
+                });
+            }
+            if (teacher.profilepicture) {
+                const publicId = teacher.profilepicture.split('/').pop().split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
+            }
+            await Teacher.findByIdAndDelete(req.user._id);
+            res.status(200).send({
+                status: "Success",
+                message: "User deleted"
+            })
+        } else {
+            res.status(404).send({
+                status: "Failed",
+                message: "Please provide a valid idcard number"
+            });
+        }
+    } catch (error) {
+        res.status(500).send({
+            status: "Failed",
+            message: "Internal server error",
+            error
+        })
+    }
+}
+
 module.exports = {
     signup,
     login,
     getTeacherDetials,
     getTeacherById,
     getAllTeacherBySpec,
-    getAllTeacher
+    getAllTeacher,
+    deleteTeacher
 }
