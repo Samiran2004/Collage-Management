@@ -2,6 +2,9 @@ const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const cloudinary = require('../middleware/cloudinaryMiddleware');
 const jwt = require('jsonwebtoken');
+const sendMail = require('../services/mailServices');
+const otpGenerator = require('otp-generator');
+const OTP = require('../models/otpModel');
 
 const generateUniqueId = (prefix, name) => {
     return `${Math.floor(Math.random() * (10000 + 99999 - 1)) + 10000}${prefix}${name.split(' ')[0]}`;
@@ -286,6 +289,76 @@ const deleteStudent = async (req, res) => {
     }
 };
 
+const sendOtp = async (req, res) => {
+    const { email, phone } = req.body;
+    try {
+        if (!email || !phone) {
+            res.status(404).send({
+                status: "Failed",
+                message: "Email and phone are required"
+            });
+        } else {
+            const student = await User.findOne({ email: email, phone: phone });
+            if (!student) {
+                res.status(404).send({
+                    status: "Failed",
+                    message: "Provided email or phone is not valid."
+                });
+            } else {
+                const otp = otpGenerator.generate(6, { digits: true, alphabets: false, upperCase: false, specialChars: false });
+                await OTP.create({ otp: otp });
+                const data = {
+                    to: email,
+                    subject: "OTP",
+                    text: `<h1>Your OTP is: ${otp}</h1>
+                     <h1>This OTP is valid till 1 min</h1>`
+                };
+
+                // Send email and handle response using callback
+                sendMail(data, (error, response) => {
+                    if (error) {
+                        res.status(400).send({
+                            status: "Failed",
+                            message: "Mail not sent"
+                        });
+                    } else {
+                        res.status(200).send({
+                            status: "Success",
+                            info: response
+                        });
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        res.status(500).send({
+            status: "Failed",
+            message: "Internal server error",
+            error
+        });
+    }
+};
+
+//Verify OTP and set a new password...
+const verifyOtp = async (req, res) => {
+    const{newpassword,otp} = req.body;
+    try {
+        if(!newpassword||!otp){
+            res.status(404).send({
+                status:"Failed",
+                message:"New password & OTP is required"
+            });
+        }else{
+            //Write the logic OTP varification and change the password.
+        }
+    } catch (error) {
+        res.status(500).send({
+            status:"Failed",
+            message:"Internal server error."
+        });
+    }
+}
+
 module.exports = {
     signupStudent,
     login,
@@ -293,5 +366,7 @@ module.exports = {
     getUserById,
     getAllStudent,
     updateStudent,
-    deleteStudent
+    deleteStudent,
+    sendOtp,
+    verifyOtp
 };
