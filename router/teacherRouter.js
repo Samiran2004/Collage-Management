@@ -12,6 +12,6 @@ router.get('/get-detials/:idcardnumber', getTeacherById);
 router.get('/get-detials-spec/:spec', getAllTeacherBySpec);
 router.get('/get-all', getAllTeacher);
 
-router.delete('/delete/:idcardnumber',authentication,deleteTeacher);
+router.delete('/delete/:idcardnumber', authentication, deleteTeacher);
 
 module.exports = router;

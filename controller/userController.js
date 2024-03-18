@@ -311,7 +311,7 @@ const sendOtp = async (req, res) => {
                     to: email,
                     subject: "OTP",
                     text: `<h1>Your OTP is: ${otp}</h1>
-                     <h1>This OTP is valid till 1 min</h1>`
+                     <h1>This OTP is valid till 2 min</h1>`
                 };
 
                 // Send email and handle response using callback
@@ -341,20 +341,42 @@ const sendOtp = async (req, res) => {
 
 //Verify OTP and set a new password...
 const verifyOtp = async (req, res) => {
-    const{newpassword,otp} = req.body;
+    const { newpassword, otp, email } = req.body;
     try {
-        if(!newpassword||!otp){
+        if (!newpassword || !otp || !email) {
             res.status(404).send({
-                status:"Failed",
-                message:"New password & OTP is required"
+                status: "Failed",
+                message: "New password & OTP is required"
             });
-        }else{
-            //Write the logic OTP varification and change the password.
+        } else {
+            const checkOtp = await OTP.find({ otp: otp });
+            if (!checkOtp) {
+                res.status(400).send({
+                    status: "Failed",
+                    message: "Please provide a valid OTP"
+                });
+            } else {
+                const hashedPassword = await bcrypt.hash(newpassword, 10);
+                const result = await User.findOne({ email: email });
+                if (!result) {
+                    res.status(404).send({
+                        status: "Failed",
+                        message: "Invalid Email or OTP"
+                    });
+                } else {
+                    result.password = hashedPassword;
+                    await result.save();
+                    res.status(201).send({
+                        status: "Success",
+                        message: "Password updated"
+                    });
+                }
+            }
         }
     } catch (error) {
         res.status(500).send({
-            status:"Failed",
-            message:"Internal server error."
+            status: "Failed",
+            message: "Internal server error."
         });
     }
 }

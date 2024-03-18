@@ -16,6 +16,8 @@ app.use('/api/users', require('./router/userRouter'));
 app.use('/api/teacher', require('./router/teacherRouter'));
 app.use('/api/attandence', require('./router/attandenceRouter'));
 
+app.use('/api/library', require('./router/bookRouter'));
+
 app.listen(process.env.PORT, () => {
     console.log(`Server connected on port: ${process.env.PORT}`);
 });
