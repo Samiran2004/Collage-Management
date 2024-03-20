@@ -21,9 +21,11 @@ const bookSchema = new mongoose.Schema({
     subject: {
         type: String
     },
-    claim: {
-        type: [String],
-    }
+    claim: [{
+        name: String,
+        idnumber: String,
+        email: String
+    }]
 });
 
 const Books = mongoose.model('Books', bookSchema);

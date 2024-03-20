@@ -84,23 +84,108 @@ const claimBook = async (req, res) => {
     const { bookname, author, idnumber, role } = req.body;
     try {
         if (!bookname || !author || !idnumber || !role) {
-            res.status(400).send({
+            return res.status(400).send({
                 status: "Failed",
                 message: "All fields are required"
             });
-        } else {
-            
         }
+        const book = await Books.findOne({ name: bookname, author: author });
+        const user = role === 'STUDENT' ? await Student.findOne({ idcardnumber: idnumber }) : await Teacher.findOne({ idcardnumber: idnumber });
+
+        if (!book || !user) {
+            return res.status(400).send({
+                status: "Failed",
+                message: "Book or user is not found."
+            });
+        }
+
+        if (book.quantity <= 0) {
+            return res.status(400).send({
+                status: "Failed",
+                message: "Books are not available"
+            });
+        }
+
+        // Check if the user has already claimed the book
+        if (book.claim.some(claim => claim.idnumber === user.idcardnumber)) {
+            return res.status(400).send({
+                status: "Failed",
+                message: "You have already claimed this book"
+            });
+        }
+
+        // Add user's details to the claim array
+        book.claim.push({
+            name: user.name,
+            idnumber: user.idcardnumber,
+            email: user.email
+        });
+
+        // Decrement book quantity
+        book.quantity--;
+
+        const result = await book.save();
+        res.status(200).send({
+            status: "Success",
+            data: result
+        });
+
     } catch (error) {
+        console.error("Error in claiming book:", error);
         res.status(500).send({
             status: "Failed",
             message: "Internal server error"
         });
     }
-}
+};
+
+//Return the book...
+const returnBook = async (req, res) => {
+    const { bookname, author, idnumber } = req.body;
+    try {
+        if (!bookname || !author || !idnumber) {
+            return res.status(400).send({
+                status: "Failed",
+                message: "All fields are required"
+            });
+        }
+        const user = await Student.findOne({ idcardnumber: idnumber }) || await Teacher.findOne({ idcardnumber: idnumber });
+        const book = await Books.findOne({ name: bookname, author: author });
+
+        if (!user || !book) {
+            return res.status(404).send({
+                status: "Failed",
+                message: "User or Book is not found"
+            });
+        }
+        const isClaim = book.claim.some(claim => claim.idnumber === idnumber);
+        if (!isClaim) {
+            return res.status(400).send({
+                status: "Failed",
+                message: "This book is not claimed by the user."
+            });
+        }
+
+        book.claim = book.claim.filter(claim => claim.idnumber !== idnumber);
+        book.quantity++;
+
+        const result = await book.save();
+        return res.status(200).send({
+            status: "Success",
+            data: result
+        });
+    } catch (error) {
+        return res.status(500).send({
+            status: "Failed",
+            message: "Internal server error"
+        });
+    }
+};
+
 
 module.exports = {
     entryNewBook,
     getAllBooksBySubject,
-    claimBook
+    claimBook,
+    returnBook
 }
